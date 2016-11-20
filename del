@@ -1,0 +1,90 @@
+#!/bin/bash
+# Davide Morello - 40219838
+# Delete Script. This script will move the target file to the Dustbin folder
+
+# Recycle bin folder
+BIN=~/my-application/bin
+# Recycle bin log folder
+LOG=$BIN/.recycle-log
+# Folder to create a temp log
+TEMP=$BIN/.temp
+
+function deleteSingle(){
+	# Path to the file to delete
+	fileToDelete=`readlink -f $1`
+	# Basename of the file to delete
+	fileName=`basename $1`
+	# Warns the user of what is going on
+	echo "Deleting... $fileToDelete"
+	# If a file with the same is already present in the bin
+	if [ -e "$BIN/$fileName" ]; then
+		# Creates a new recycle log
+		touch "$TEMP"
+		# For each line in the old log
+		while read line
+		do
+			# filters out the lines that do not concern the current file to delete
+			if [ ! `basename $line` == "$fileName" ]; then
+				echo "$line" >> "$TEMP"
+			fi
+			done < "$LOG"
+		# sets the new old as the current log
+		if [ -e "$TEMP" ]; then
+    			mv "$TEMP" "$LOG"
+		fi
+	fi
+	# adds the path of the deleted file
+    echo "$fileToDelete" >> "$LOG"
+	# moves the file to the bin, if necessary overwriting the previous one
+	mv "$fileToDelete" "$BIN"
+}
+
+# Checks if the bin directory exists, if not creates one
+test -d "$BIN" || mkdir -p "$BIN"
+# If due to permission or other issues a bin is still not available, exit
+if [ ! -d "$BIN" ]; then
+    echo "Could not create the directory $BIN"
+    exit 1
+fi
+
+# Checks if the restore file exists otherwise it creates one
+test -e "$LOG" || touch "$LOG"
+# If due to permission or other issues a .recycle-log file is still not available, exists
+if [ ! -e "$LOG" ]; then
+    echo "Could not create a log file $LOG"
+    exit 1
+fi
+
+# Checks if parameters have been provided
+if [ "$*" == "" ]; then
+	# If not, echoes error message
+	echo "Missing operand"
+	echo "Try del --help for more information."
+    exit 1
+fi
+
+# Standard --help command
+if [ "$1" == "--help" ]; then
+	echo "Usage: del <filepath>"
+    exit 1
+fi
+
+
+# Ask the user if they want to delete
+echo "Are you sure you want to move this file(s) to the Recyle Bin?"
+echo  "Yes - No"
+# Reads the answers
+read ans
+case "$ans" in
+  # Positive confirmation case
+	y|Y|yes|YES|Yes)
+		# Loops through the console args
+		for var in "$@"
+		do
+			# Invokes the function to delete the current arg
+			deleteSingle $var
+		done ;;
+	# Negative answer, doesn't do anything
+	n|N|no|NO|No) echo "File not deleted" ;;
+esac
+

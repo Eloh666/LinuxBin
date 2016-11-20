@@ -1,0 +1,82 @@
+#!/bin/bash
+# Davide Morello - 40219838
+# Restore Script. This script will restore the target if it exists back to its
+# original folder adding a .bak if a file with the same name already exists
+
+# Recycle bin folder
+BIN=~/my-application/bin
+# Recycle bin log folder
+LOG=$BIN/.recycle-log
+# Folder to create a temp log
+TEMP=$BIN/.temp
+
+# Function that wraps the restoring of a file
+function restoreSingle() {
+	# creates an empty temporary log
+	touch "$TEMP"
+	# the name of the file to restore
+	fileToRestore=`basename $1`
+	# loops through the log
+	while read line
+	do
+		# if the line contains the path of the file to restore
+		if [ `basename $line` == $fileToRestore ]; then
+			# selects the directory in which the file is supposed to be restored
+			dir=`dirname $line`
+			# if a file with the same name already exists, renames the path
+			if [ -e "$line" ]; then
+				line="$line.bak"
+			fi
+			# warns the user of what is going on
+			echo "Restoring `basename $line` to its original folder."
+			# creates the path to the file's directory if it has been deleted
+			mkdir -p "$dir"
+			# restores the file
+			mv "$BIN/$fileToRestore" "$line"
+		else
+			# otherwise selects the line to be copied in the new version of the log
+			echo "$line" >> "$TEMP"
+		fi
+	# reads from log
+	done < "$LOG"
+	# if an updated log exists, replaces the old one
+	if [ -e "$TEMP" ]; then
+		mv "$TEMP" "$LOG"
+	fi
+}
+
+# checks if the bin exists
+if [ ! -d "$BIN" ]; then
+    echo "Could not find your Recycle Bin directory."
+    exit 1
+fi
+
+# checks if a restore log exists
+if [ ! -e "$LOG" ]; then
+    echo "Could not find the restore log file."
+    exit 1
+fi
+
+
+# Checks if parameters have been provided
+if [ "$*" == "" ]; then
+	# If not, echoes error message
+	echo "Missing operand"
+	echo "Try restore --help for more information."
+    exit 1
+fi
+
+# Standard --help command
+if [ "$1" == "--help" ]; then
+	echo "Usage: restore <filename>"
+    exit 1
+fi
+
+# for each one of the parameters, restores the file
+for var in "$@"
+do
+	restoreSingle $var
+done
+
+
+
