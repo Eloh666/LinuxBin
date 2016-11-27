@@ -3,7 +3,7 @@
 # Delete Script. This script will move the target file to the Dustbin folder
 
 # Recycle bin folder
-BIN=~/my-application/bin
+BIN=~/my-applications/bin
 # Recycle bin log folder
 LOG=$BIN/.recycle-log
 # Folder to create a temp log
